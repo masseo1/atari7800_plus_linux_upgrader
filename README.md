@@ -49,7 +49,7 @@ flowchart TD
 | `sha256sum` | (pre-installed) | Verify firmware integrity |
 
 **Also needed:**
-- Official Atari 7800+ firmware updater `.exe` (download from [Atari](https://atari.com/support))
+- Official Atari 7800+ firmware updater `.exe` (download from [Atari](https://atari.com/blogs/newsroom/updating-atari-firmware))
 - USB cable to connect Atari 7800+ in Mask ROM mode
 
 ## Installation

@@ -9,10 +9,10 @@
 set -euo pipefail
 
 # --- Config ---
-FIRMWARE_EXE="${FIRMWARE_EXE:-Atari7800_Firmware_Updater_2.0.1.4.1.exe}"
+FIRMWARE_EXE="${FIRMWARE_EXE:-Atari7800_Firmware_Updater_2.0.1.6.exe}"
 FIRMWARE_IMG="${FIRMWARE_IMG:-Atari_Firmware.img}"
-# Replace this with the official Atari SHA256 checksum
-OFFICIAL_SHA256="${OFFICIAL_SHA256:-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef}"
+# SHA256 checksum of extracted Atari_Firmware.img (v2.0.1.6)
+OFFICIAL_SHA256="${OFFICIAL_SHA256:-cbae452a788f2b9cafd02687335e58c75381ce80cce41bca31334f8e45b051fc}"
 DRY_RUN="${DRY_RUN:-0}"
 
 # --- Helper functions ---
@@ -49,9 +49,26 @@ function extract_firmware {
     TMP_DIR=$(mktemp -d)
     trap "rm -rf '$TMP_DIR'" EXIT
 
-    binwalk -e -C "$TMP_DIR" "$FIRMWARE_EXE" >/dev/null || error_exit "Binwalk extraction failed"
+    # Use timeout and only extract first level; kill once .img is found
+    timeout 120 binwalk -e --depth=1 -C "$TMP_DIR" "$FIRMWARE_EXE" &
+    BINWALK_PID=$!
+    
+    # Poll for .img file and kill binwalk once found
+    IMG_FOUND=""
+    while kill -0 $BINWALK_PID 2>/dev/null; do
+        IMG_FOUND=$(find "$TMP_DIR" -type f -name "*.img" 2>/dev/null | head -n1)
+        if [ -n "$IMG_FOUND" ]; then
+            info "Found firmware image, stopping extraction..."
+            sleep 1  # Let file finish writing
+            kill $BINWALK_PID 2>/dev/null || true
+            wait $BINWALK_PID 2>/dev/null || true
+            break
+        fi
+        sleep 1
+    done
 
-    IMG_FOUND=$(find "$TMP_DIR" -type f -name "*.img" -exec ls -s {} + | sort -n -r | head -n1 | awk '{print $2}')
+    # If not found during polling, check one more time
+    [ -z "$IMG_FOUND" ] && IMG_FOUND=$(find "$TMP_DIR" -type f -name "*.img" 2>/dev/null | head -n1)
     [ -z "$IMG_FOUND" ] && error_exit "Failed to locate firmware .img in extracted files"
 
     cp "$IMG_FOUND" "$FIRMWARE_IMG"
@@ -75,7 +92,7 @@ function verify_checksum {
 
 function detect_device {
     info "Detecting Atari 7800+ in Mask ROM mode..."
-    DEVICES=$(rkdeveloptool ld 2>/dev/null || true)
+    DEVICES=$(sudo rkdeveloptool ld 2>/dev/null || true)
     if [[ "$DEVICES" != *"Maskrom"* ]]; then
         error_exit "No device detected in Mask ROM mode. Ensure console is connected and in update mode."
     fi
@@ -97,26 +114,26 @@ function confirm_flash {
 
 function flash_firmware {
     info "Flashing firmware to Atari 7800+..."
-    rkdeveloptool uf "$FIRMWARE_IMG" || error_exit "Flashing failed! Do not disconnect the device."
+    sudo rkdeveloptool uf "$FIRMWARE_IMG" || error_exit "Flashing failed! Do not disconnect the device."
     info "Flash completed successfully."
 }
 
 function reboot_device {
     info "Rebooting device..."
-    rkdeveloptool rd || warn "Auto-reboot failed. Please power-cycle your Atari 7800+ manually."
+    sudo rkdeveloptool rd || warn "Auto-reboot failed. Please power-cycle your Atari 7800+ manually."
 }
 
 function show_help {
     echo "Atari 7800+ Linux Firmware Upgrader"
-    echo ""
+    echo " "
     echo "Usage: sudo ./flash_atari7800.sh [OPTIONS]"
-    echo ""
+    echo " "
     echo "Environment Variables:"
     echo "  FIRMWARE_EXE     Path to firmware .exe (default: Atari7800_Firmware_Updater_2.0.1.4.1.exe)"
     echo "  FIRMWARE_IMG     Output firmware image name (default: Atari_Firmware.img)"
     echo "  OFFICIAL_SHA256  Expected SHA256 checksum"
     echo "  DRY_RUN=1        Extract and verify only, skip flashing"
-    echo ""
+    echo " "
     echo "Examples:"
     echo "  sudo ./flash_atari7800.sh"
     echo "  DRY_RUN=1 ./flash_atari7800.sh"
