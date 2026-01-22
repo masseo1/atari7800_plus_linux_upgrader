@@ -1,81 +1,138 @@
-# 🕹️ Atari 7800+ Firmware Upgrade for Linux
+# Atari 7800+ Linux Firmware Upgrader
 
-This is an idea to havea Safe, fully-automated firmware upgrade tool for Atari 7800+ on Linux.
-It should automatically extracts firmware from the official Windows updater .exe, verify checksum, and flash your Atari 7800+ safely using rkdeveloptool.
+A safe, fully-automated firmware upgrade tool for the Atari 7800+ console on Linux. Extracts firmware from the official Windows updater `.exe`, verifies integrity, and flashes your console using `rkdeveloptool`.
 
+## Features
 
-## ⚡ Features
+- **Automatic extraction** — Uses `binwalk` to extract firmware from Windows `.exe`
+- **Smart detection** — Auto-selects the correct `.img` file from extracted contents
+- **Checksum verification** — SHA256 validation prevents corrupted flashes
+- **Safe workflow** — Mask ROM detection and user confirmation before flashing
+- **Dry-run mode** — Test extraction and verification without touching your console
 
-- ✅ Automatic firmware extraction using binwalk
-- ✅ Auto-detects the largest .img — no manual searching
-- ✅ SHA256 checksum verification to prevent corrupted flashes
-- ✅ Safe flashing workflow with Mask ROM detection and user confirmation
-- ✅ Full Linux support — no Windows required
+## How It Works
 
-## 📦 Requirements
+```mermaid
+flowchart TD
+    A[Start] --> B{Prerequisites OK?}
+    B -->|No| B1[Install missing tools]
+    B1 --> B
+    B -->|Yes| C{Firmware .img exists?}
+    C -->|Yes| E[Verify SHA256 Checksum]
+    C -->|No| D[Extract .img from .exe using binwalk]
+    D --> E
+    E --> F{Checksum Valid?}
+    F -->|No| F1[Abort - Corrupted firmware]
+    F -->|Yes| G{Dry-run mode?}
+    G -->|Yes| G1[Exit - Ready for flash]
+    G -->|No| H{Device in Mask ROM?}
+    H -->|No| H1[Abort - Connect console in update mode]
+    H -->|Yes| I[User Confirmation]
+    I -->|No| I1[Abort - Cancelled by user]
+    I -->|Yes| J[Flash Firmware]
+    J --> K[Reboot Device]
+    K --> L[Complete]
 
-- Linux machine (tested on Ubuntu/Debian)
-- rkdeveloptool installed
-- binwalk installed (sudo apt install binwalk)
-- sha256sum (standard on most Linux)
-- Official Atari 7800+ firmware .exe
+    style A fill:#1a1a2e,stroke:#00d9ff,color:#fff
+    style L fill:#1a1a2e,stroke:#00ff88,color:#fff
+    style F1 fill:#1a1a2e,stroke:#ff4444,color:#fff
+    style H1 fill:#1a1a2e,stroke:#ff4444,color:#fff
+    style I1 fill:#1a1a2e,stroke:#ffaa00,color:#fff
+```
+
+## Requirements
+
+| Tool | Install Command | Purpose |
+|------|-----------------|---------|
+| `rkdeveloptool` | `sudo apt install rkdeveloptool` | Flash Rockchip-based devices |
+| `binwalk` | `sudo apt install binwalk` | Extract firmware from `.exe` |
+| `sha256sum` | (pre-installed) | Verify firmware integrity |
+
+**Also needed:**
+- Official Atari 7800+ firmware updater `.exe` (download from [Atari](https://atari.com/support))
 - USB cable to connect Atari 7800+ in Mask ROM mode
 
-## 🚀 Installation
+## Installation
 
-- Clone this repo and make the script executable:
+```bash
+git clone https://github.com/masseo1/atari7800_plus_linux_upgrader.git
+cd atari7800_plus_linux_upgrader
+chmod +x flash_atari7800.sh
+```
 
-git clone https://github.com/masseo1/atari7800-linux-upgrade.git
-cd atari7800-linux-upgrade
-chmod +x safe_flash_atari7800_auto.sh
+## Usage
 
+### Standard Flash
 
-Place the official updater .exe in the folder.
+1. Download the official firmware `.exe` and place it in this folder
+2. Put your Atari 7800+ into **Mask ROM mode** (hold reset while connecting USB)
+3. Run the script:
 
-## 🛡️ Usage
-sudo ./safe_flash_atari7800_auto.sh
+```bash
+sudo ./flash_atari7800.sh
+```
 
+### Dry-Run Mode
 
-## What it does:
+Extract and verify firmware without flashing:
 
-Automatically extracts Atari_Firmware.img from the .exe
+```bash
+DRY_RUN=1 ./flash_atari7800.sh
+```
 
-Verifies the SHA256 checksum
+### Custom Firmware File
 
-Detects your Atari 7800+ in Mask ROM mode
+```bash
+FIRMWARE_EXE=MyFirmware.exe sudo ./flash_atari7800.sh
+```
 
-Prompts you for confirmation before flashing
+### Help
 
-Safely flashes the firmware
+```bash
+./flash_atari7800.sh --help
+```
 
-Reboots the console
+## Environment Variables
 
-## ⚠️ Warning: Flashing firmware always carries risk. Ensure your Atari is connected correctly and don’t interrupt the process.
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `FIRMWARE_EXE` | `Atari7800_Firmware_Updater_2.0.1.4.1.exe` | Input firmware updater |
+| `FIRMWARE_IMG` | `Atari_Firmware.img` | Extracted image filename |
+| `OFFICIAL_SHA256` | (placeholder) | Expected SHA256 checksum |
+| `DRY_RUN` | `0` | Set to `1` to skip flashing |
 
-### 🔍 Optional Dry-Run Mode
+## Entering Mask ROM Mode
 
-- You can also preview firmware extraction and checksum without flashing:
+1. Disconnect power from your Atari 7800+
+2. Hold the **Reset** button
+3. Connect USB cable to your computer
+4. Release Reset after 2-3 seconds
+5. Verify detection: `rkdeveloptool ld` should show "Maskrom"
 
-` DRY_RUN=1 sudo ./safe_flash_atari7800_auto.sh`
+## Troubleshooting
 
+| Issue | Solution |
+|-------|----------|
+| "No device detected" | Ensure console is in Mask ROM mode and USB is connected |
+| "rkdeveloptool not found" | Install with `sudo apt install rkdeveloptool` |
+| "binwalk extraction failed" | Ensure `.exe` is not corrupted; try re-downloading |
+| "SHA256 mismatch" | Firmware may be corrupted; re-download the `.exe` |
 
-This prints firmware details and verifies integrity without touching the console.
+## Warning
 
-## 🛠️ Contributing
+> **Flashing firmware carries inherent risk.** Ensure your Atari 7800+ is connected properly, your computer has stable power, and do not interrupt the flashing process. The authors are not responsible for bricked devices.
 
-Contributions welcome! Suggestions include:
+## Contributing
 
-Supporting future updater .exe versions
+Contributions welcome! Ideas:
+- Support for additional firmware versions
+- Automatic checksum lookup
+- GUI frontend
 
-Improved checksum verification
+## License
 
-Adding a GUI frontend for Linux
+MIT License — free to use, modify, and share. Flash at your own risk.
 
-## 📜 License
+---
 
-MIT License — free to use, modify, and share.
-Give credit where credit is due, but flash at your own risk.
-
-## 💬 Disclaimer
-
-This tool is not official Atari software. Flashing firmware always carries risk of bricking your device. Use responsibly and at your own risk.
+*This is an unofficial community tool. Not affiliated with Atari.*
