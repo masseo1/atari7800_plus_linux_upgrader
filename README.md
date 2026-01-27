@@ -1,6 +1,7 @@
 # Atari 7800+ Linux Firmware Upgrader
 
-A safe, fully-automated firmware upgrade tool for the Atari 7800+ console on Linux. Extracts firmware from the official Windows updater `.exe`, verifies integrity, and flashes your console using `rkdeveloptool`.
+This is jsut a test application now. Maybe in the futire it can become a safe, fully-automated firmware upgrade tool for the Atari 7800+ console on Linux. 
+Its meant to extract firmwar from the official Windows updater `.exe`, verify integrity, and flash your console using `rkdeveloptool`.
 
 ## Features
 
@@ -10,7 +11,7 @@ A safe, fully-automated firmware upgrade tool for the Atari 7800+ console on Lin
 - **Safe workflow** — Mask ROM detection and user confirmation before flashing
 - **Dry-run mode** — Test extraction and verification without touching your console
 
-## How It Works
+## How It Might Work
 
 ```mermaid
 flowchart TD
