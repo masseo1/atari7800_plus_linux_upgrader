@@ -120,7 +120,7 @@ FIRMWARE_EXE=MyFirmware.exe sudo ./flash_atari7800.sh
 
 ## Warning
 
-> **Flashing firmware carries inherent risk.** Ensure your Atari 7800+ is connected properly, your computer has stable power, and do not interrupt the flashing process. The authors are not responsible for bricked devices.
+> **Flashing firmware carries inherent risk.**  THIS TOOL IS JUST FOR EXPERIMENTATION, It can break your device easily. I am not responsible for bricked devices.
 
 ## Contributing
 
